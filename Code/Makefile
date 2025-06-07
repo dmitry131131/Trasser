@@ -44,6 +44,10 @@ read_fuse:
 	@echo [READ_FUSE]
 	@avrdude -c usbasp -p $(FLASH_TARGET) -U hfuse:r:attiny13_hfuse.txt:h -U lfuse:r:attiny13_lfuse.txt:h
 
+write_lfuse_high_frequency:
+	@echo [WRITE_LFUSE]
+	@avrdude -c usbasp -p $(FLASH_TARGET) -U lfuse:w:0x7a:m
+
 clean:
 	@echo [CLEAN]
 	mkdir -p $(BuildFolder)

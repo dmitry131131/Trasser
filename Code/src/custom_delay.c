@@ -1,6 +1,8 @@
 #include "utils.h"
 #include "custom_delay.h"
 
+#define FREQUENCY_SCALE 8
+
 volatile int timer_counter = 0;
 // Delay in 0,1s
 static void custom_delay_0_1_sec() {
@@ -24,6 +26,7 @@ static void custom_delay_0_1_sec() {
 }    
 
 void delay_x_0_1_sec(int delay) {
+    delay *= FREQUENCY_SCALE;
     for (int i = 0; i < delay; i++) custom_delay_0_1_sec();
 }
 
