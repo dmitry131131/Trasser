@@ -5,6 +5,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 
 void small_outside_blink();
 
@@ -28,7 +29,6 @@ void small_outside_blink();
 #define Cleanup_Timer()                    TCNT0 = 0x0;
 
 // PCINT
-
 #define Enable_PCINT_Interrupt()  GIMSK |= (1 << PCIE);   // Разрешение прерываний PCINT0
 #define Disable_PCINT_Interrupt() GIMSK &= ~(1 << PCIE);
 
@@ -37,3 +37,15 @@ void small_outside_blink();
 #define Inside_LED_Off()  PORTB &= ~(1 << PB4);
 #define Outside_LED_On()  PORTB |= (1 << PB3);
 #define Outside_LED_Off() PORTB &= ~(1 << PB3);
+#define IR_LED_On() do{     \
+    DDRB  &= ~(1 << DDB0);  \
+    PORTB |= (1 << PB0);    \
+} while(0)
+#define IR_LED_Off() do {   \
+    DDRB  |= (1 << DDB0);   \
+    PORTB &= ~(1 << PB0);   \
+} while(0)
+
+// WDT
+#define Enable_WDT_Interrupt() WDTCR = (1 << WDCE) | (1 << WDTIE) | (1 << WDP3) | (1 << WDP0);
+#define Disable_WDT_Interrupt() WDTCR = (1 << WDCE);

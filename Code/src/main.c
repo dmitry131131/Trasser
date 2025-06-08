@@ -9,6 +9,10 @@ volatile enum Mode {
     INSIDE_AND_OUTSIDE,
 } global_mode = ONLY_INSIDE;
 
+volatile uint16_t wdt_count = 0;
+const uint16_t target = 225;  // 450 * 8 сек = 3600 сек (1 час)
+volatile uint8_t active = 1;
+
 // Функция генерации вспышки от выстрела
 void blink_led(enum Mode mode) {
     switch (mode)
@@ -51,17 +55,27 @@ ISR(PCINT0_vect) {
 
     if (PINB & (1 << PB2)) return;
 
-    switch (global_mode)
-    {
-    case ONLY_INSIDE:
-        global_mode = ONLY_OUTSIDE;
-        break;
-    case ONLY_OUTSIDE:
-        global_mode = INSIDE_AND_OUTSIDE;
-        break;
-    case INSIDE_AND_OUTSIDE:
-        global_mode = ONLY_INSIDE;
-        break;
+    wdt_count = 0;  // Сброс таймера на сон
+
+    if (!active) {
+        active = 1;
+        Clean_ANA_Comp_Flag();
+        IR_LED_On();
+        Enable_ANA_Comp_Interrupt();
+    }
+    else {
+        switch (global_mode)
+        {
+        case ONLY_INSIDE:
+            global_mode = ONLY_OUTSIDE;
+            break;
+        case ONLY_OUTSIDE:
+            global_mode = INSIDE_AND_OUTSIDE;
+            break;
+        case INSIDE_AND_OUTSIDE:
+            global_mode = ONLY_INSIDE;
+            break;
+        }
     }
     small_outside_blink();
 }
@@ -71,6 +85,7 @@ ISR(PCINT0_vect) {
 ISR(ANA_COMP_vect) {
     // Отключение прерывания компаратора
     Disable_ANA_Comp_Interrupt();
+    wdt_count = 0;  // Сброс таймера на сон
 
     blink_led(global_mode);
 
@@ -78,9 +93,22 @@ ISR(ANA_COMP_vect) {
     Enable_ANA_Comp_Interrupt();
 }
 
+// Прерывание по срабатыванию сторожевого таймера
+ISR(WDT_vect) {
+    wdt_count++;
+    if (wdt_count >= target) {
+        wdt_count = 0;  // Сброс таймера на сон
+        active = 0;     // Отключение МК
+        Disable_ANA_Comp_Interrupt();
+        IR_LED_Off();
+    }
+    Enable_WDT_Interrupt(); // Очень важно заново активировать прерывания от WDT, иначе в следующий раз будет выполнен сброс
+}
+
 int main(void) {
     // Инициализация периферии
     PORT_B_Init();
+    WDT_Init();
     ANA_Comp_Init();
     Timer_Init();
     PCINT0_Interrupt_Init();
